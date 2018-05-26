@@ -1,14 +1,26 @@
 #[macro_use] extern crate log;
+use std::rc::Rc ;
 extern crate pretty_env_logger;
 fn main() {
     pretty_env_logger::init();
     info!("test-driver start!");
     println!("Hello, world!");
-    let room = ExamRoom::new();
+    serving();
 }
-
+#[derive(Clone)]
 struct User
 {}
+impl User
+{
+    pub fn new() -> User
+    {
+        User{}
+    }
+    pub fn wait_answer(&self, question :&ExamQuest) ->Answer
+    {
+        Answer::new() 
+    }
+}
 
 type UserRc = std::rc::Rc<User>;
 
@@ -21,9 +33,20 @@ impl Token
     {
         Token{}
     }
-    pub fn is_ok() -> bool
+    pub fn is_ok(&self) -> bool
     {
         true 
+    }
+}
+struct Answer
+{
+
+}
+impl Answer
+{
+    pub fn new() -> Answer
+    {
+        Answer{}
     }
 }
 struct ExamRoom
@@ -38,7 +61,7 @@ impl ExamRoom
     }
     pub fn join( &mut self , user : UserRc ) -> Token
     {
-       self.users.insert(user)  ;
+       self.users.push(user)  ;
        Token::new()
 
     }
@@ -46,22 +69,34 @@ impl ExamRoom
     {
 
     }
-    pub fn wait_question()
+    pub fn wait_question(&self) -> ExamQuest
+    {
+        ExamQuest::new()
+
+    }
+    pub fn post_answer(&self, answer : &Answer)
     {
 
     }
-    pub fn post_answer(&self)
-    {
-
-    }
-    pub fn wait_judge(&self) -> Token
+    pub fn wait_judge(&self,user : &User) -> Token
     {
         Token::new()
+    }
+    pub fn is_open(&self) -> bool
+    {
+        true
     }
 }
 
 struct ExamQuest
 {}
+impl ExamQuest
+{
+    pub fn new() -> ExamQuest
+    {
+        ExamQuest{}
+    }
+}
 
 struct AnswerSheet
 {
@@ -72,6 +107,24 @@ struct JudgeService
 {
 
 }
+fn serving()
+{
+    let mut muggle = UserRc::new(User::new());
+    let mug_ref    = muggle.as_ref();
+    let mut room   = ExamRoom::new();
+
+    let mut token = room.join(muggle.clone());
+    room.wait_start() ;
+    while token.is_ok() && room.is_open()
+    {
+        let question = room.wait_question() ;
+        let answer   = mug_ref.wait_answer(&question) ;
+        room.post_answer(&answer) ;
+        token = room.wait_judge(mug_ref);
+        break;
+    }
+
+}
 //#[cfg(test)]
 mod tests
 {
@@ -79,18 +132,6 @@ mod tests
     #[test]
     fn useage()
     {
-        let one  = User::new();
-        let room = ExamRoom::new();
-
-        let token = room.join(one);
-        room.wait_start() ;
-        while token.is_ok() && room.is_open()
-        {
-            let question = room.wait_question() ;
-            let answer   = one.wait_answer(question) ;
-            room.post_answer(answer) ;
-            token = room.wait_judge(one);
-        }
-
+        serving();
     }
 }
