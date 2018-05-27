@@ -26,6 +26,11 @@ impl User
     {
         Answer::new() 
     }
+    fn answer_sheet(&self) -> AnswerSheet
+    {
+        AnswerSheet::new()
+
+    }
 }
 
 type UserRc = std::rc::Rc<User>;
@@ -51,6 +56,7 @@ impl Token
         self.data.len() > 0
     }
 }
+#[derive(Debug,Clone)]
 pub struct Answer
 {
 
@@ -102,6 +108,7 @@ impl ExamRoom
     }
 }
 
+#[derive(Debug,Clone)]
 struct ExamQuest
 {}
 impl ExamQuest
@@ -113,9 +120,18 @@ impl ExamQuest
 }
 
 #[allow(dead_code)]
+#[derive(Debug,Clone)]
 struct AnswerSheet
 {
 
+}
+impl AnswerSheet
+{
+    pub fn new() -> AnswerSheet
+    {
+        AnswerSheet{}
+
+    }
 }
 
 fn serving( judge_svc :Box<JudgeService>)
@@ -198,13 +214,17 @@ mod tests
         while token.is_ok() && room.is_open()
         {
             let question = room.wait_question() ;
+            debug!("question: {:?}", question);
             let answer   = mug_ref.wait_answer(&question) ;
+            debug!("answer: {:?}", answer);
             room.post_answer(&answer) ;
             token = room.wait_judge(mug_ref);
             debug!("answer token {:?}", token);
             times += 1 ;
         }
         assert!(times > 1) ;
+        let sheet = mug_ref.answer_sheet() ;
+        debug!("answer sheet: {:?} ",sheet) ;
 
     }
 }
