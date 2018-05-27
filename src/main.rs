@@ -5,7 +5,8 @@ fn main() {
     pretty_env_logger::init();
     info!("test-driver start!");
     println!("Hello, world!");
-    serving();
+    let exam_svc = Box::new(ExamService::new()) ;
+    serving(exam_svc);
 }
 #[derive(Clone)]
 struct User
@@ -51,13 +52,14 @@ impl Answer
 }
 struct ExamRoom
 {
-    users : Vec<UserRc>
+    users : Vec<UserRc>,
+    judge_svc : Box<JudgeService>,
 }
 impl ExamRoom
 {
-    pub fn new() -> ExamRoom
+    pub fn new( judge_svc : Box<JudgeService>) -> ExamRoom
     {
-        ExamRoom{ users: Vec::new() }
+        ExamRoom{ users: Vec::new(), judge_svc }
     }
     pub fn join( &mut self , user : UserRc ) -> Token
     {
@@ -103,15 +105,15 @@ struct AnswerSheet
 
 }
 
-struct JudgeService
+pub trait JudgeService
 {
 
 }
-fn serving()
+fn serving( judge_svc :Box<JudgeService>)
 {
     let mut muggle = UserRc::new(User::new());
     let mug_ref    = muggle.as_ref();
-    let mut room   = ExamRoom::new();
+    let mut room   = ExamRoom::new(judge_svc);
 
     let mut token = room.join(muggle.clone());
     room.wait_start() ;
@@ -125,13 +127,39 @@ fn serving()
     }
 
 }
+
+struct ExamService {}
+impl ExamService{ 
+    pub fn new() ->ExamService
+    {
+        ExamService{}
+    }
+}
+impl JudgeService  for ExamService
+{
+
+} 
+
 //#[cfg(test)]
 mod tests
 {
     use super::* ;
+    struct JudgeStub { }
+    impl JudgeStub
+    {
+        pub fn new() -> JudgeStub
+        {
+            JudgeStub{}
+        }
+    }
+    impl JudgeService  for JudgeStub
+    {
+    } 
     #[test]
     fn useage()
     {
-        serving();
+        //TODO: #1
+        let judge_svc = Box::new(JudgeStub::new()) ;
+        serving(judge_svc);
     }
 }
