@@ -1,5 +1,5 @@
 [package]
-name = "test-driver"
+name = "tdd-example"
 version = "0.1.0"
 authors = ["zuowenjian <zuowenjian@outlook.com>"]
 

@@ -1,6 +1,11 @@
 #[macro_use] extern crate log;
 use std::rc::Rc ;
 extern crate pretty_env_logger;
+trait JudgeService
+{
+    fn wait_judge(&self,user: &User) -> Token ;
+}
+
 fn main() {
     pretty_env_logger::init();
     info!("test-driver start!");
@@ -9,7 +14,7 @@ fn main() {
     serving(exam_svc);
 }
 #[derive(Clone)]
-struct User
+pub struct User
 {}
 impl User
 {
@@ -17,7 +22,7 @@ impl User
     {
         User{}
     }
-    pub fn wait_answer(&self, question :&ExamQuest) ->Answer
+    fn wait_answer(&self, _question :&ExamQuest) ->Answer
     {
         Answer::new() 
     }
@@ -25,21 +30,28 @@ impl User
 
 type UserRc = std::rc::Rc<User>;
 
-struct Token
+#[derive(Debug,Clone)]
+pub struct Token
 {
+    data : String
 }
 impl Token
 {
     pub fn new() -> Token
     {
-        Token{}
+        Token{ data: String::from("")}
+    }
+    pub fn stub() -> Token
+    {
+        Token{ data: String::from("YES") }
     }
     pub fn is_ok(&self) -> bool
     {
-        true 
+        //TODO: stub impl
+        self.data.len() > 0
     }
 }
-struct Answer
+pub struct Answer
 {
 
 }
@@ -64,7 +76,7 @@ impl ExamRoom
     pub fn join( &mut self , user : UserRc ) -> Token
     {
        self.users.push(user)  ;
-       Token::new()
+       Token::stub()
 
     }
     pub fn wait_start(&self)
@@ -76,13 +88,13 @@ impl ExamRoom
         ExamQuest::new()
 
     }
-    pub fn post_answer(&self, answer : &Answer)
+    pub fn post_answer(&self, _answer : &Answer)
     {
 
     }
     pub fn wait_judge(&self,user : &User) -> Token
     {
-        Token::new()
+        self.judge_svc.wait_judge(user) 
     }
     pub fn is_open(&self) -> bool
     {
@@ -100,20 +112,17 @@ impl ExamQuest
     }
 }
 
+#[allow(dead_code)]
 struct AnswerSheet
 {
 
 }
 
-pub trait JudgeService
-{
-
-}
 fn serving( judge_svc :Box<JudgeService>)
 {
-    let mut muggle = UserRc::new(User::new());
-    let mug_ref    = muggle.as_ref();
-    let mut room   = ExamRoom::new(judge_svc);
+    let muggle   = UserRc::new(User::new());
+    let mug_ref  = muggle.as_ref();
+    let mut room = ExamRoom::new(judge_svc);
 
     let mut token = room.join(muggle.clone());
     room.wait_start() ;
@@ -123,7 +132,7 @@ fn serving( judge_svc :Box<JudgeService>)
         let answer   = mug_ref.wait_answer(&question) ;
         room.post_answer(&answer) ;
         token = room.wait_judge(mug_ref);
-        break;
+        debug!("answer token {:?}", token);
     }
 
 }
@@ -137,29 +146,65 @@ impl ExamService{
 }
 impl JudgeService  for ExamService
 {
+    fn wait_judge(&self,_user: &User) -> Token 
+    {
+        Token::new()
+    }
 
 } 
 
-//#[cfg(test)]
+#[cfg(test)]
 mod tests
 {
     use super::* ;
-    struct JudgeStub { }
+    use std::cell::RefCell ;
+    struct JudgeStub { 
+        judge_vec : RefCell<Vec<Token>>
+    }
     impl JudgeStub
     {
         pub fn new() -> JudgeStub
         {
-            JudgeStub{}
+            let judge_vec = RefCell::new(vec! [ 
+                                         Token::new(),
+                                         Token::stub(), 
+                                         Token::stub(), 
+                                         Token::stub(), 
+                                         ]) ;
+            JudgeStub{ judge_vec }
         }
     }
     impl JudgeService  for JudgeStub
     {
+        fn wait_judge(&self,_user: &User) -> Token 
+        {
+            self.judge_vec.borrow_mut().pop().expect("empty stub data ")
+        }
     } 
     #[test]
     fn useage()
     {
         //TODO: #1
+        pretty_env_logger::init();
+        debug!("begin...") ;
         let judge_svc = Box::new(JudgeStub::new()) ;
-        serving(judge_svc);
+        let muggle   = UserRc::new(User::new());
+        let mug_ref  = muggle.as_ref();
+        let mut room = ExamRoom::new(judge_svc);
+
+        let mut token = room.join(muggle.clone());
+        room.wait_start() ;
+        let mut times = 0 ;
+        while token.is_ok() && room.is_open()
+        {
+            let question = room.wait_question() ;
+            let answer   = mug_ref.wait_answer(&question) ;
+            room.post_answer(&answer) ;
+            token = room.wait_judge(mug_ref);
+            debug!("answer token {:?}", token);
+            times += 1 ;
+        }
+        assert!(times > 1) ;
+
     }
 }
