@@ -6,6 +6,12 @@ trait JudgeService
     fn wait_judge(&self,user: &User) -> Token ;
 }
 
+trait ExamUi
+{
+    fn show_question(&self, question : &ExamQuest) ;
+    fn wait_answer(&self) -> Answer ;
+}
+
 fn main() {
     pretty_env_logger::init();
     info!("test-driver start!");
@@ -13,18 +19,50 @@ fn main() {
     let exam_svc = Box::new(ExamService::new()) ;
     serving(exam_svc);
 }
+
+
+#[derive(Clone)]
+struct PhoneUI 
+{}
+
+impl PhoneUI 
+{
+    pub fn stub() ->PhoneUI
+    {
+        PhoneUI{}
+    }
+}
+
+impl ExamUi for PhoneUI
+{
+    fn show_question(&self, question : &ExamQuest) 
+    {
+        debug!("UI: question : {:?}" , question) ;
+    }
+    fn wait_answer(&self) -> Answer 
+    {
+        Answer::new(String::from("A")) 
+    }
+
+}
 #[derive(Clone)]
 pub struct User
-{}
+{
+    sheet : AnswerSheet,
+    exam_ui : Rc<Box<ExamUi>> ,
+
+}
 impl User
 {
-    pub fn new() -> User
+    pub fn new(ui : Box<ExamUi>) -> User
     {
-        User{}
+        User{sheet : AnswerSheet::new(), exam_ui: Rc::new(ui) }
     }
-    fn wait_answer(&self, _question :&ExamQuest) ->Answer
+    fn wait_answer(&self, question :&ExamQuest) ->Answer
     {
-        Answer::new() 
+        let ui_ref  = self.exam_ui.as_ref();
+        ui_ref.show_question(question) ;
+        Answer::stub() 
     }
     fn answer_sheet(&self) -> AnswerSheet
     {
@@ -59,13 +97,18 @@ impl Token
 #[derive(Debug,Clone)]
 pub struct Answer
 {
+    chose : String,
 
 }
 impl Answer
 {
-    pub fn new() -> Answer
+    pub fn new(chose : String ) -> Answer
     {
-        Answer{}
+        Answer{chose}
+    }
+    pub fn stub()-> Answer
+    {
+        Answer{chose : String::from("A")}
     }
 }
 struct ExamRoom
@@ -123,20 +166,28 @@ impl ExamQuest
 #[derive(Debug,Clone)]
 struct AnswerSheet
 {
+    answers : Vec<(String,String)>
 
 }
 impl AnswerSheet
 {
     pub fn new() -> AnswerSheet
     {
-        AnswerSheet{}
 
+        let answers = Vec::new();
+        AnswerSheet{ answers}
+
+    }
+    pub fn record(&mut self ,id : String, chose : String)
+    {
+        self.answers.push( (id,chose) ) ;
+        
     }
 }
 
 fn serving( judge_svc :Box<JudgeService>)
 {
-    let muggle   = UserRc::new(User::new());
+    let muggle   = UserRc::new(User::new(Box::new(PhoneUI::stub())));
     let mug_ref  = muggle.as_ref();
     let mut room = ExamRoom::new(judge_svc);
 
@@ -197,6 +248,32 @@ mod tests
             self.judge_vec.borrow_mut().pop().expect("empty stub data ")
         }
     } 
+
+    #[derive(Clone)]
+    struct StubUI 
+    {}
+
+    impl StubUI 
+    {
+        pub fn stub() ->StubUI
+        {
+            StubUI{}
+        }
+    }
+
+    impl ExamUi for StubUI
+    {
+        fn show_question(&self, question : &ExamQuest) 
+        {
+            debug!("UI: question : {:?}" , question) ;
+        }
+        fn wait_answer(&self) -> Answer 
+        {
+            Answer::new(String::from("A")) 
+        }
+
+    }
+
     #[test]
     fn useage()
     {
@@ -204,7 +281,7 @@ mod tests
         pretty_env_logger::init();
         debug!("begin...") ;
         let judge_svc = Box::new(JudgeStub::new()) ;
-        let muggle   = UserRc::new(User::new());
+        let muggle   = UserRc::new(User::new(Box::new(StubUI::stub())));
         let mug_ref  = muggle.as_ref();
         let mut room = ExamRoom::new(judge_svc);
 
