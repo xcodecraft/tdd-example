@@ -4,13 +4,13 @@ use user::* ;
 struct ExamRoom
 {
     users : Vec<UserRc>,
-    judge_svc : Box<JudgeService>,
+    exam_svc : Box<ExamService>,
 }
 impl ExamRoom
 {
-    pub fn new( judge_svc : Box<JudgeService>) -> ExamRoom
+    pub fn new( exam_svc : Box<ExamService>) -> ExamRoom
     {
-        ExamRoom{ users: Vec::new(), judge_svc }
+        ExamRoom{ users: Vec::new(), exam_svc }
     }
     pub fn join( &mut self , user : UserRc ) -> Token
     {
@@ -24,7 +24,7 @@ impl ExamRoom
     }
     pub fn wait_question(&self) -> ExamQuest
     {
-        ExamQuest::new()
+        self.exam_svc.wait_question() 
 
     }
     pub fn post_answer(&self, _answer : &Answer)
@@ -33,7 +33,7 @@ impl ExamRoom
     }
     pub fn wait_judge(&self,_user : &User) -> Token
     {
-        self.judge_svc.wait_judge(String::from("stub user-id")) 
+        self.exam_svc.wait_judge(String::from("stub user-id")) 
     }
     pub fn is_open(&self) -> bool
     {
@@ -42,10 +42,10 @@ impl ExamRoom
 }
 
 
-pub fn serving( judge_svc :Box<JudgeService>, muggle : UserRc)
+pub fn serving( exam_svc :Box<ExamService>, muggle : UserRc)
 {
     let mug_ref  = muggle.as_ref();
-    let mut room = ExamRoom::new(judge_svc);
+    let mut room = ExamRoom::new(exam_svc);
 
     let mut token = room.join(muggle.clone());
     room.wait_start() ;
@@ -65,12 +65,13 @@ mod tests
     use super::* ;
     use pretty_env_logger ;
     use std::cell::RefCell ;
-    struct JudgeStub { 
-        judge_vec : RefCell<Vec<Token>>
+    struct ExamSvcStub { 
+        judge_vec : RefCell<Vec<Token>> ,
+        quest_vec : RefCell<Vec<ExamQuest>>
     }
-    impl JudgeStub
+    impl ExamSvcStub
     {
-        pub fn new() -> JudgeStub
+        pub fn new() -> ExamSvcStub
         {
             let judge_vec = RefCell::new(vec! [ 
                                          Token::new(),
@@ -78,15 +79,32 @@ mod tests
                                          Token::stub(), 
                                          Token::stub(), 
                                          ]) ;
-            JudgeStub{ judge_vec }
+
+            let quest_vec = RefCell::new(vec! [ 
+                                         ExamQuest::stub(),
+                                         ExamQuest::stub(),
+                                         ExamQuest::stub(),
+                                         ExamQuest::stub(),
+                                         ExamQuest::stub(),
+                                         ExamQuest::stub(),
+                                         ExamQuest::stub(),
+                                         ExamQuest::stub(),
+                                         ExamQuest::stub(),
+                                         ]) ;
+            ExamSvcStub{ judge_vec,quest_vec }
         }
     }
-    impl JudgeService  for JudgeStub
+    impl ExamService  for ExamSvcStub
     {
         fn wait_judge(&self,_user: String) -> Token 
         {
             self.judge_vec.borrow_mut().pop().expect("empty stub data ")
         }
+        fn wait_question(&self) -> ExamQuest 
+        {
+            self.quest_vec.borrow_mut().pop().expect("empty stub data ")
+        }
+
     } 
 
     #[derive(Clone)]
@@ -117,13 +135,12 @@ mod tests
     #[test]
     fn useage()
     {
-        //TODO: #1
         pretty_env_logger::init();
         debug!("begin...") ;
-        let judge_svc = Box::new(JudgeStub::new()) ;
+        let exam_svc = Box::new(ExamSvcStub::new()) ;
         let muggle   = UserRc::new(User::new(Box::new(StubUI::stub())));
         let mug_ref  = muggle.as_ref();
-        let mut room = ExamRoom::new(judge_svc);
+        let mut room = ExamRoom::new(exam_svc);
 
         let mut token = room.join(muggle.clone());
         room.wait_start() ;

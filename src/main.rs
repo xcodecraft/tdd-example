@@ -11,7 +11,7 @@ use user::* ;
 fn main() {
     pretty_env_logger::init();
     info!("tdd-example start!");
-    let exam_svc = Box::new(bend::ExamService::new()) ;
+    let exam_svc = Box::new(bend::BEndService::new()) ;
     let muggle   = UserRc::new(User::new(Box::new(ui::PhoneUI::stub())));
     room::serving(exam_svc,muggle);
 }

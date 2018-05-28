@@ -1,7 +1,8 @@
 
-pub trait JudgeService
+pub trait ExamService
 {
     fn wait_judge(&self,user: String) -> Token ;
+    fn wait_question(&self) -> ExamQuest ;
 }
 
 pub trait ExamUi
@@ -33,12 +34,26 @@ impl Token
 
 #[derive(Debug,Clone)]
 pub struct ExamQuest
-{}
+{
+   question : String,
+   options  : Vec<String>,
+}
 impl ExamQuest
 {
-    pub fn new() -> ExamQuest
+    // pub fn new() -> ExamQuest
+    // {
+        // ExamQuest{}
+    // }
+    pub fn stub() -> ExamQuest
     {
-        ExamQuest{}
+        let question = String::from("best lang is ?") ;
+        let options  = vec![ 
+                        String::from("A : Java") ,
+                        String::from("B : PHP") ,
+                        String::from("C : Go") ,
+        ] ;
+        ExamQuest{ question, options} 
+
     }
 }
 

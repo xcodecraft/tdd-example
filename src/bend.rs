@@ -1,17 +1,20 @@
 use model::* ;
-use user::User ;
-pub struct ExamService {}
-impl ExamService{ 
-    pub fn new() ->ExamService
+pub struct BEndService {}
+impl BEndService{ 
+    pub fn new() ->BEndService
     {
-        ExamService{}
+        BEndService{}
     }
 }
-impl JudgeService  for ExamService
+impl ExamService  for BEndService
 {
     fn wait_judge(&self,_user: String) -> Token 
     {
         Token::new()
+    }
+    fn wait_question(&self) -> ExamQuest 
+    {
+        ExamQuest::stub() 
     }
 
 } 
