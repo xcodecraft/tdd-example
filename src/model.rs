@@ -46,8 +46,9 @@ impl ExamQuest
     // }
     pub fn stub() -> ExamQuest
     {
-        let question = String::from("best lang is ?") ;
-        let options  = vec![ 
+        //let x: u8    = rand::random();
+        let question = format!("best lang is ?") ;
+        let options  = vec![
                         String::from("A : Java") ,
                         String::from("B : PHP") ,
                         String::from("C : Go") ,
