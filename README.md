@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/xcodecraft/tdd-example.svg?branch=master)](https://travis-ci.org/xcodecraft/tdd-example)
+
 此项目主用于演示测试驱动开发
 
 # 背景：
